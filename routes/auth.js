@@ -13,12 +13,20 @@ const ExpressError = require('../expressError');
 router.post('/login', async (req, res, next) => {
     try {
         const { username, password } = req.body;
-        if (await User.authenticate(username, password)) {
+
+        let user;
+        try{
+            user = await User.get(username);
+            authenticated = await User.authenticate(username, password);
+            if(!user || !authenticated) throw new Error();
+            
+        } catch(e) {
+            throw new ExpressError('Invalid username/password', 400);
+        }
+
         await User.updateLoginTimestamp(username);
         const token = jwt.sign({ username }, SECRET_KEY);
         return res.json({ token });
-        }
-        throw new ExpressError('Invalid username/password', 400);
     } catch (e) {
         return next(e);
     }
@@ -41,3 +49,5 @@ router.post('/register', async (req, res, next) => {
         return next(e);
     }
 });
+
+module.exports = router;
